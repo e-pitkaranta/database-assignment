@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 def init_db(filename, create_sql, insert_sql, rows):
     path = os.path.join(BASE_DIR, filename)
-    print("Tarkistetaan:", path, os.path.exists(path))
+    print("Database:", filename, "/path:", path, "/exists:", os.path.exists(path))
     if os.path.exists(path):
         return
     conn = sqlite3.connect(path)
@@ -21,31 +21,34 @@ def init_db(filename, create_sql, insert_sql, rows):
 
 def init_all():
     init_db(
-        "books.db",
-        "CREATE TABLE books (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, author TEXT NOT NULL, year INTEGER)",
-        "INSERT INTO books (title, author, year) VALUES (?, ?, ?)",
-        [("Dune", "Frank Herbert", 1965),
-         ("1984", "George Orwell", 1949),
-         ("The Hobbit", "J.R.R. Tolkien", 1937),
-         ("Neuromancer", "William Gibson", 1984)],
+        "jazz.db",
+        "CREATE TABLE jazz (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
+        "INSERT INTO jazz (album, artist, year) VALUES (?, ?, ?)",
+        [("Kind of Blue", "Miles Davis", 1959),
+         ("A Love Supreme", "John Coltrane", 1965),
+         ("Time Out", "Dave Brubeck Quartet", 1959),
+         ("Mingus Ah Um", "Charles Mingus", 1959),
+         ("Head Hunters", "Herbie Hancock", 1973)],
     )
     init_db(
-        "movies.db",
-        "CREATE TABLE movies (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, director TEXT NOT NULL, year INTEGER)",
-        "INSERT INTO movies (title, director, year) VALUES (?, ?, ?)",
-        [("Blade Runner", "Ridley Scott", 1982),
-         ("Inception", "Christopher Nolan", 2010),
-         ("The Matrix", "The Wachowskis", 1999),
-         ("Alien", "Ridley Scott", 1979)],
+        "ambient.db",
+        "CREATE TABLE ambient (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
+        "INSERT INTO ambient (album, artist, year) VALUES (?, ?, ?)",
+        [("Music for Airports", "Brian Eno", 1978),
+         ("Selected Ambient Works 85-92", "Aphex Twin", 1992),
+         ("Substrata", "Biosphere", 1997),
+         ("The Disintegration Loops", "William Basinski", 2002),
+         ("Discreet Music", "Brian Eno", 1975)],
     )
     init_db(
-        "students.db",
-        "CREATE TABLE students (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, course TEXT NOT NULL, grade INTEGER)",
-        "INSERT INTO students (name, course, grade) VALUES (?, ?, ?)",
-        [("Matti", "Databases", 4),
-         ("Liisa", "Databases", 5),
-         ("Pekka", "Statistics", 3),
-         ("Aino", "Statistics", 5)],
+        "mountains.db",
+        "CREATE TABLE mountains (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, country TEXT NOT NULL, height_m INTEGER)",
+        "INSERT INTO mountains (name, country, height_m) VALUES (?, ?, ?)",
+        [("Mount Everest", "Nepal/China", 8849),
+         ("K2", "Pakistan/China", 8611),
+         ("Mont Blanc", "France/Italy", 4806),
+         ("Kebnekaise", "Sweden", 2096),
+         ("Halti", "Finland", 1324)],
     )
 
 init_all()
