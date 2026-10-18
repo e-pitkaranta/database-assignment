@@ -34,22 +34,23 @@
   </form>
 
   <script>
-    // null = lisätään uusi rivi, numero = muokataan sen id:n riviä
+    // null = adding a new row, number = editing the row with that id
     let editId = null;
-    // valitun tietokannan sarakkeet (tulevat Flaskilta)
+    // columns of the selected database (they come from Flask)
     let columns = [];
 
+    // Returns the name of the selected database
     function currentDb() {
       return document.getElementById("db-select").value;
     }
 
-    // Hakee rivit ja sarakkeet ja piirtää taulukon
+    // Fetches columns and rows from Flask and draws the table
     async function loadRows() {
       const response = await fetch("/api/" + currentDb());
       const data = await response.json();
       columns = data.columns;
 
-      // otsikkorivi
+      // header row
       const thead = document.getElementById("table-head");
       thead.innerHTML = "";
       const headRow = document.createElement("tr");
@@ -61,7 +62,7 @@
       }
       thead.appendChild(headRow);
 
-      // datarivit
+      // data rows
       const tbody = document.getElementById("table-body");
       tbody.innerHTML = "";
 
@@ -96,7 +97,7 @@
       }
     }
 
-    // Luo lomakkeeseen yhden kentän jokaista saraketta varten
+    // Creates one input field in the form for each column
     function buildForm() {
       const box = document.getElementById("form-fields");
       box.innerHTML = "";
@@ -109,7 +110,7 @@
       }
     }
 
-    // Täyttää lomakkeen rivin nykyisillä arvoilla
+    // Fills the form with the current values of the row
     function startEdit(row) {
       editId = row.id;
       for (let i = 0; i < columns.length; i++) {
@@ -119,7 +120,7 @@
       document.getElementById("save-button").textContent = "Save";
     }
 
-    // Tyhjentää lomakkeen ja palaa lisäystilaan
+    // Clears the form and goes back to add mode
     function resetForm() {
       editId = null;
       document.getElementById("row-form").reset();
@@ -127,12 +128,13 @@
       document.getElementById("save-button").textContent = "Add";
     }
 
+    // Sends a DELETE request for the row and reloads the table
     async function deleteRow(id) {
       await fetch("/api/" + currentDb() + "/" + id, { method: "DELETE" });
       loadRows();
     }
 
-    // Lomakkeen lähetys: POST (lisäys) tai PUT (muokkaus)
+    // Form submit: POST (add) or PUT (edit)
     document.getElementById("row-form").onsubmit = async function (event) {
       event.preventDefault();
 
@@ -158,7 +160,7 @@
       loadRows();
     };
 
-    // Tietokannan vaihto: hae rivit, rakenna lomake uusille sarakkeille
+    // Changing the database: load rows, build the form for the new columns
     async function changeDb() {
       await loadRows();
       buildForm();
@@ -168,7 +170,7 @@
     document.getElementById("cancel-button").onclick = resetForm;
     document.getElementById("db-select").onchange = changeDb;
 
-    changeDb();
+    changeDb();  // runs when the page opens
   </script>
 </body>
 </html>

@@ -2,9 +2,10 @@ import os
 import sqlite3
 from flask import Flask, request, render_template
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # folder where this file is
 app = Flask(__name__)
 
+# Creates one database file with a table and dummy data (skips if file exists)
 def init_database(filename, create_sql, insert_sql, rows):
     path = os.path.join(BASE_DIR, filename)
     print("Database:", filename, "/path:", path, "/exists:", os.path.exists(path))
@@ -16,6 +17,7 @@ def init_database(filename, create_sql, insert_sql, rows):
     conn.commit()
     conn.close()
 
+# Creates all three databases
 def init_all():
     init_database(
         "employees.db",
@@ -48,23 +50,26 @@ def init_all():
          ("Oslo Cable AS", "Ingrid Berg", "Oslo", "Norway")],
     )
 
-init_all()
+init_all()  # runs at startup
 
 
 
 
+# Database name -> file name
 DATABASES = {
     "employees": "employees.db",
     "projects": "projects.db",
     "customers": "customers.db",
 }
 
+# Columns of each table (without id)
 COLUMNS = {
     "employees": ["name", "department", "salary", "hired_year"],
     "projects": ["name", "owner", "status", "budget"],
     "customers": ["company", "contact", "city", "country"],
 }
 
+# Reads all rows of a table and returns them as a list of dicts
 def get_rows(db_name):
     path = os.path.join(BASE_DIR, DATABASES[db_name])
     conn = sqlite3.connect(path)
@@ -77,6 +82,7 @@ def get_rows(db_name):
         tulos.append(dict(row))
     return tulos
 
+# READ: returns columns and rows of the chosen database
 @app.route("/api/<db_name>")
 def api_read(db_name):
     if db_name not in DATABASES:
@@ -85,16 +91,18 @@ def api_read(db_name):
 
 
 
+# ADD: inserts a new row
 @app.route("/api/<db_name>", methods=["POST"])
 def api_add(db_name):
     if db_name not in DATABASES:
         return {"error": "Unknown database"}, 404
 
-    data = request.get_json()
+    data = request.get_json()  # values sent by the page
     print(data)
 
     names = COLUMNS[db_name]
 
+    # build the values and the ? marks from the column list
     values = []
     marks = []
     for name in names:
@@ -111,6 +119,7 @@ def api_add(db_name):
 
     return {"done": True}
 
+# DELETE: removes the row with the given id
 @app.route("/api/<db_name>/<int:row_id>", methods=["DELETE"])
 def api_delete(db_name, row_id):
     if db_name not in DATABASES:
@@ -124,6 +133,7 @@ def api_delete(db_name, row_id):
 
     return {"done": True}
 
+# UPDATE: changes the row with the given id
 @app.route("/api/<db_name>/<int:row_id>", methods=["PUT"])
 def api_update(db_name, row_id):
     if db_name not in DATABASES:
@@ -134,6 +144,7 @@ def api_update(db_name, row_id):
 
     names = COLUMNS[db_name]
 
+    # parts = "name = ?" pieces, values = new values (id goes last for WHERE)
     parts = []
     values = []
     for name in names:
@@ -151,9 +162,10 @@ def api_update(db_name, row_id):
 
     return {"done": True}
 
+# Front page: sends the HTML page to the browser
 @app.route("/")
 def home():
     return render_template("index.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True)  # starts the server
