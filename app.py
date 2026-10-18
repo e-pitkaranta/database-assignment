@@ -18,34 +18,34 @@ def init_database(filename, create_sql, insert_sql, rows):
 
 def init_all():
     init_database(
-        "jazz.db",
-        "CREATE TABLE jazz (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
-        "INSERT INTO jazz (album, artist, year) VALUES (?, ?, ?)",
-        [("Kind of Blue", "Miles Davis", 1959),
-         ("A Love Supreme", "John Coltrane", 1965),
-         ("Time Out", "Dave Brubeck Quartet", 1959),
-         ("Mingus Ah Um", "Charles Mingus", 1959),
-         ("Head Hunters", "Herbie Hancock", 1973)],
+        "employees.db",
+        "CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, department TEXT NOT NULL, salary INTEGER, hired_year INTEGER)",
+        "INSERT INTO employees (name, department, salary, hired_year) VALUES (?, ?, ?, ?)",
+        [("Matti Virtanen", "Production", 3200, 2015),
+         ("Laura Korhonen", "Finance", 3800, 2018),
+         ("Jussi Nieminen", "IT", 4100, 2020),
+         ("Sanna Mäkinen", "HR", 3500, 2017),
+         ("Pekka Laine", "Production", 3000, 2022)],
     )
     init_database(
-        "ambient.db",
-        "CREATE TABLE ambient (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
-        "INSERT INTO ambient (album, artist, year) VALUES (?, ?, ?)",
-        [("Music for Airports", "Brian Eno", 1978),
-         ("Selected Ambient Works 85-92", "Aphex Twin", 1992),
-         ("Substrata", "Biosphere", 1997),
-         ("The Disintegration Loops", "William Basinski", 2002),
-         ("Discreet Music", "Brian Eno", 1975)],
+        "projects.db",
+        "CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, owner TEXT NOT NULL, status TEXT NOT NULL, budget INTEGER)",
+        "INSERT INTO projects (name, owner, status, budget) VALUES (?, ?, ?, ?)",
+        [("New ERP system", "Jussi Nieminen", "In progress", 120000),
+         ("Safety training", "Sanna Mäkinen", "Done", 8000),
+         ("Line 3 upgrade", "Matti Virtanen", "Planned", 250000),
+         ("Budget 2027", "Laura Korhonen", "In progress", 5000),
+         ("Website renewal", "Jussi Nieminen", "Planned", 15000)],
     )
     init_database(
-        "fusion.db",
-        "CREATE TABLE fusion (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
-        "INSERT INTO fusion (album, artist, year) VALUES (?, ?, ?)",
-        [("Cross Point", "Casiopea", 1981),
-         ("Mint Jams", "T-Square", 1982),
-         ("Paradise", "Hiroshi Sato", 1980),
-         ("Fuse", "Hiroshima", 1984),
-         ("Bluesy", "Masayoshi Takanaka", 1980)],
+        "customers.db",
+        "CREATE TABLE customers (id INTEGER PRIMARY KEY AUTOINCREMENT, company TEXT NOT NULL, contact TEXT NOT NULL, city TEXT, country TEXT)",
+        "INSERT INTO customers (company, contact, city, country) VALUES (?, ?, ?, ?)",
+        [("Nordic Metals Oy", "Aino Salo", "Pori", "Finland"),
+         ("Baltic Steel AB", "Erik Lund", "Gothenburg", "Sweden"),
+         ("Rhein Kupfer GmbH", "Hans Weber", "Hamburg", "Germany"),
+         ("Kupari Trading", "Mikko Heino", "Helsinki", "Finland"),
+         ("Oslo Cable AS", "Ingrid Berg", "Oslo", "Norway")],
     )
 
 init_all()
@@ -54,9 +54,15 @@ init_all()
 
 
 DATABASES = {
-    "jazz": "jazz.db",
-    "ambient": "ambient.db",
-    "fusion": "fusion.db",
+    "employees": "employees.db",
+    "projects": "projects.db",
+    "customers": "customers.db",
+}
+
+COLUMNS = {
+    "employees": ["name", "department", "salary", "hired_year"],
+    "projects": ["name", "owner", "status", "budget"],
+    "customers": ["company", "contact", "city", "country"],
 }
 
 def get_rows(db_name):
@@ -75,7 +81,7 @@ def get_rows(db_name):
 def api_read(db_name):
     if db_name not in DATABASES:
         return {"error": "Unknown database"}, 404
-    return {"rows": get_rows(db_name)}
+    return {"columns": COLUMNS[db_name], "rows": get_rows(db_name)}
 
 
 
@@ -86,11 +92,20 @@ def api_add(db_name):
 
     data = request.get_json()
     print(data)
-    values = (data["album"], data["artist"], data["year"])
+
+    names = COLUMNS[db_name]
+
+    values = []
+    marks = []
+    for name in names:
+        values.append(data[name])
+        marks.append("?")
+
+    sql = "INSERT INTO " + db_name + " (" + ", ".join(names) + ") VALUES (" + ", ".join(marks) + ")"
 
     path = os.path.join(BASE_DIR, DATABASES[db_name])
     conn = sqlite3.connect(path)
-    conn.execute("INSERT INTO " + db_name + " (album, artist, year) VALUES (?,?,?)", values)
+    conn.execute(sql, values)
     conn.commit()
     conn.close()
 
@@ -116,11 +131,21 @@ def api_update(db_name, row_id):
 
     data = request.get_json()
     print(data)
-    values = (data["album"], data["artist"], data ["year"], row_id)
+
+    names = COLUMNS[db_name]
+
+    parts = []
+    values = []
+    for name in names:
+        parts.append(name + " = ?")
+        values.append(data[name])
+    values.append(row_id)
+
+    sql = "UPDATE " + db_name + " SET " + ", ".join(parts) + " WHERE id = ?"
 
     path = os.path.join(BASE_DIR, DATABASES[db_name])
     conn = sqlite3.connect(path)
-    conn.execute("UPDATE " + db_name + " SET album = ?, artist = ?, year = ? WHERE id = ?", values)
+    conn.execute(sql, values)
     conn.commit()
     conn.close()
 
