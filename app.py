@@ -1,7 +1,6 @@
 import os
 import sqlite3
-from flask import Flask
-from flask import Flask, request
+from flask import Flask, request, render_template
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -39,14 +38,14 @@ def init_all():
          ("Discreet Music", "Brian Eno", 1975)],
     )
     init_database(
-        "mountains.db",
-        "CREATE TABLE mountains (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, country TEXT NOT NULL, height_m INTEGER)",
-        "INSERT INTO mountains (name, country, height_m) VALUES (?, ?, ?)",
-        [("Mount Everest", "Nepal/China", 8849),
-         ("K2", "Pakistan/China", 8611),
-         ("Mont Blanc", "France/Italy", 4806),
-         ("Kebnekaise", "Sweden", 2096),
-         ("Halti", "Finland", 1324)],
+        "fusion.db",
+        "CREATE TABLE fusion (id INTEGER PRIMARY KEY AUTOINCREMENT, album TEXT NOT NULL, artist TEXT NOT NULL, year INTEGER)",
+        "INSERT INTO fusion (album, artist, year) VALUES (?, ?, ?)",
+        [("Cross Point", "Casiopea", 1981),
+         ("Mint Jams", "T-Square", 1982),
+         ("Paradise", "Hiroshi Sato", 1980),
+         ("Fuse", "Hiroshima", 1984),
+         ("Bluesy", "Masayoshi Takanaka", 1980)],
     )
 
 init_all()
@@ -57,13 +56,7 @@ init_all()
 DATABASES = {
     "jazz": "jazz.db",
     "ambient": "ambient.db",
-    "mountains": "mountains.db",
-}
-
-COLUMNS = {
-    "jazz": ["album", "artist", "year"],
-    "ambient": ["album", "artist", "year"],
-    "mountains": ["name", "country", "height_m"],
+    "fusion": "fusion.db",
 }
 
 def get_rows(db_name):
@@ -84,6 +77,25 @@ def api_read(db_name):
         return {"error": "Unknown database"}, 404
     return {"rows": get_rows(db_name)}
 
+
+
+@app.route("/api/<db_name>", methods=["POST"])
+def api_add(db_name):
+    if db_name not in DATABASES:
+        return {"error": "Unknown database"}, 404
+
+    data = request.get_json()
+    print(data)
+    values = (data["album"], data["artist"], data["year"])
+
+    path = os.path.join(BASE_DIR, DATABASES[db_name])
+    conn = sqlite3.connect(path)
+    conn.execute("INSERT INTO " + db_name + " (album, artist, year) VALUES (?,?,?)", values)
+    conn.commit()
+    conn.close()
+
+    return {"done": True}
+
 @app.route("/api/<db_name>/<int:row_id>", methods=["DELETE"])
 def api_delete(db_name, row_id):
     if db_name not in DATABASES:
@@ -97,27 +109,26 @@ def api_delete(db_name, row_id):
 
     return {"done": True}
 
-@app.route("/api/<db_name>", methods=["POST"])
-def api_add(db_name):
+@app.route("/api/<db_name>/<int:row_id>", methods=["PUT"])
+def api_update(db_name, row_id):
     if db_name not in DATABASES:
         return {"error": "Unknown database"}, 404
 
     data = request.get_json()
     print(data)
-
-    columns = COLUMNS[db_name]
-
-    values = []
-    for column in columns:
-        values.append(data[column])
-
+    values = (data["album"], data["artist"], data ["year"], row_id)
 
     path = os.path.join(BASE_DIR, DATABASES[db_name])
     conn = sqlite3.connect(path)
-    conn.execute("DELETE FROM " + db_name + " WHERE id = ?", (row_id,))
+    conn.execute("UPDATE " + db_name + " SET album = ?, artist = ?, year = ? WHERE id = ?", values)
     conn.commit()
     conn.close()
 
+    return {"done": True}
+
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
