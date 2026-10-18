@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <title>Multi-Database Manager</title>
   <style>
-    body { font-family: sans-serif; max-width: 700px; margin: 30px auto; }
+    body { font-family: sans-serif; max-width: 900px; margin: 30px auto; }
     table { border-collapse: collapse; width: 100%; margin: 15px 0; }
     th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
     th { background: #eee; }
-    input { margin-right: 5px; }
+    input { margin-right: 5px; margin-bottom: 5px; }
   </style>
 </head>
 <body>
@@ -16,23 +16,19 @@
 
   <label>Database:</label>
   <select id="db-select">
-    <option value="jazz">jazz</option>
-    <option value="ambient">ambient</option>
-    <option value="fusion">fusion</option>
+    <option value="employees">employees</option>
+    <option value="projects">projects</option>
+    <option value="customers">customers</option>
   </select>
 
   <table>
-    <thead>
-      <tr><th>ID</th><th>Album</th><th>Artist</th><th>Year</th><th>Actions</th></tr>
-    </thead>
+    <thead id="table-head"></thead>
     <tbody id="table-body"></tbody>
   </table>
 
   <h3 id="form-title">Add new row</h3>
   <form id="row-form">
-    <input id="album" placeholder="Album" required>
-    <input id="artist" placeholder="Artist" required>
-    <input id="year" type="number" placeholder="Year" required>
+    <div id="form-fields"></div>
     <button type="submit" id="save-button">Add</button>
     <button type="button" id="cancel-button">Cancel</button>
   </form>
@@ -40,16 +36,32 @@
   <script>
     // null = lisätään uusi rivi, numero = muokataan sen id:n riviä
     let editId = null;
+    // valitun tietokannan sarakkeet (tulevat Flaskilta)
+    let columns = [];
 
     function currentDb() {
       return document.getElementById("db-select").value;
     }
 
-    // Hakee valitun tietokannan rivit ja piirtää taulukon
+    // Hakee rivit ja sarakkeet ja piirtää taulukon
     async function loadRows() {
       const response = await fetch("/api/" + currentDb());
       const data = await response.json();
+      columns = data.columns;
 
+      // otsikkorivi
+      const thead = document.getElementById("table-head");
+      thead.innerHTML = "";
+      const headRow = document.createElement("tr");
+      const headers = ["id"].concat(columns).concat(["actions"]);
+      for (let i = 0; i < headers.length; i++) {
+        const th = document.createElement("th");
+        th.textContent = headers[i];
+        headRow.appendChild(th);
+      }
+      thead.appendChild(headRow);
+
+      // datarivit
       const tbody = document.getElementById("table-body");
       tbody.innerHTML = "";
 
@@ -57,10 +69,13 @@
         const row = data.rows[i];
         const tr = document.createElement("tr");
 
-        const fields = [row.id, row.album, row.artist, row.year];
-        for (let j = 0; j < fields.length; j++) {
+        const idCell = document.createElement("td");
+        idCell.textContent = row.id;
+        tr.appendChild(idCell);
+
+        for (let j = 0; j < columns.length; j++) {
           const td = document.createElement("td");
-          td.textContent = fields[j];
+          td.textContent = row[columns[j]];
           tr.appendChild(td);
         }
 
@@ -81,12 +96,25 @@
       }
     }
 
+    // Luo lomakkeeseen yhden kentän jokaista saraketta varten
+    function buildForm() {
+      const box = document.getElementById("form-fields");
+      box.innerHTML = "";
+      for (let i = 0; i < columns.length; i++) {
+        const input = document.createElement("input");
+        input.id = "field-" + columns[i];
+        input.placeholder = columns[i];
+        input.required = true;
+        box.appendChild(input);
+      }
+    }
+
     // Täyttää lomakkeen rivin nykyisillä arvoilla
     function startEdit(row) {
       editId = row.id;
-      document.getElementById("album").value = row.album;
-      document.getElementById("artist").value = row.artist;
-      document.getElementById("year").value = row.year;
+      for (let i = 0; i < columns.length; i++) {
+        document.getElementById("field-" + columns[i]).value = row[columns[i]];
+      }
       document.getElementById("form-title").textContent = "Edit row " + row.id;
       document.getElementById("save-button").textContent = "Save";
     }
@@ -108,11 +136,10 @@
     document.getElementById("row-form").onsubmit = async function (event) {
       event.preventDefault();
 
-      const body = {
-        album: document.getElementById("album").value,
-        artist: document.getElementById("artist").value,
-        year: Number(document.getElementById("year").value)
-      };
+      const body = {};
+      for (let i = 0; i < columns.length; i++) {
+        body[columns[i]] = document.getElementById("field-" + columns[i]).value;
+      }
 
       let url = "/api/" + currentDb();
       let method = "POST";
@@ -131,14 +158,17 @@
       loadRows();
     };
 
-    document.getElementById("cancel-button").onclick = resetForm;
-
-    document.getElementById("db-select").onchange = function () {
+    // Tietokannan vaihto: hae rivit, rakenna lomake uusille sarakkeille
+    async function changeDb() {
+      await loadRows();
+      buildForm();
       resetForm();
-      loadRows();
-    };
+    }
 
-    loadRows();
+    document.getElementById("cancel-button").onclick = resetForm;
+    document.getElementById("db-select").onchange = changeDb;
+
+    changeDb();
   </script>
 </body>
 </html>
