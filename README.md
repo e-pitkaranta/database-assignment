@@ -36,4 +36,4 @@ The three database files are created automatically with dummy data on the first 
 
 ## Demo video
 
-(link here)
+https://youtu.be/6XbdaUwJ62M
